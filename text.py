@@ -3,12 +3,9 @@ import boto3
 import pymysql
 import os
 from time import sleep
-
+import dbDeets
 def phone_lookup():
-    Dburl = os.environ['DBurl']
-    DBusername = os.environ['DBusername']
-    DBpassword = os.environ['DBpassword']
-    DBname = os.environ['DBname']
+
 
     #userID = 3547
     # Open database connection

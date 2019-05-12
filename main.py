@@ -120,8 +120,8 @@ def main():
 
             cv2.imwrite('bin/' + userID+'-'+randID + '.jpg', frame)
 
-            #s3.uploadDirectory("bin/", "open-gun-recordings",userID)
-            #txt.fire(picURL)
+            s3.uploadDirectory("bin/", "open-gun-recordings",userID)
+            txt.fire(picURL)
             print("wooooo")
             framecount = 0
         yield (b'--frame\r\n'
