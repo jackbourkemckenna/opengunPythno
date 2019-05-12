@@ -2,14 +2,15 @@ import boto3
 #import PyMySQL
 import pymysql
 import os
-import dbDeets
+from time import sleep
+
 def phone_lookup():
     Dburl = os.environ['DBurl']
     DBusername = os.environ['DBusername']
     DBpassword = os.environ['DBpassword']
     DBname = os.environ['DBname']
 
-    userID = 3547
+    #userID = 3547
     # Open database connection
     connection = pymysql.connect(DBurl,DBusername,DBpassword,DBname )
 
@@ -18,24 +19,20 @@ def phone_lookup():
 
         with connection.cursor() as cursor:
             # Read a single record
-            sql = "SELECT phone_num from `users` WHERE `id` =  "+str(userID)
+            sql = "SELECT phone_num from `users` WHERE `id` = (SELECT MAX(id) FROM users)"
             cursor.execute(sql)
             result = str(cursor.fetchone()[0])
+
             phone_num = (result)
     finally:
         connection.close()
 
 
-    # disconnect from server
-    print(type(phone_num))
-    print(phone_num)
     return(phone_num)
     sns_client = boto3.client('sns')
     phone_lookup()
-
 def fire(picURL):
 	sns_client = boto3.client('sns')
-
 	phone = str(phone_lookup())
 
 
@@ -55,5 +52,8 @@ def fire(picURL):
     #Subject='string', (Optional - not used with PhoneNumer)
     #MessageStructure='string' (Optional)
 	)
+
+
+
 
 #fire()

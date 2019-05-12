@@ -14,6 +14,7 @@ import cv2
 import pickle
 import struct ## new
 import zlib
+from threading import Thread
 from flask import Flask, render_template, Response
 
 
@@ -40,11 +41,13 @@ def setup():
         print(e)
         exit(0)
 def main():
+    userID = txt.phone_lookup()
 
     setup()
-    userID = "3546"
+    framecount = 0
+
     fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
-    out = cv2.VideoWriter('output.avi',fourcc, 20.0, (320,240))
+    out = cv2.VideoWriter('output'+userID+'.avi',fourcc, 20.0, (320,240))
     data = b""
     payload_size = struct.calcsize(">L")
     print("payload_size: {}".format(payload_size))
@@ -69,8 +72,7 @@ def main():
 
 
 
-        framecount =0
-        framecount += 1
+        #totalFrames = frame.get(cv2.CAP_PROP_FRAME_COUNT)
         #frameId = frame.get(1) #current frame number
 
 
@@ -84,35 +86,51 @@ def main():
 
         #stuff to try in the future
         #scaleFactor=1.1, minNeighbors=5, minSize=(30, 30), flags=cv2.CASCADE_SCALE_IMAGE, outputRejectLevels = True
-        gun = gun_cascade.detectMultiScale(gray, 3,5)
+        gun = gun_cascade.detectMultiScale(gray, 3.5,5)
 
         for (x,y,w,h) in gun:
             randID = uuid.uuid4().hex
             frame = cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
+            #totalFrames = frame.get(cv2.CAP_PROP_FRAME_COUNT)
+            framecount = framecount + 1
 
             roi_gray = gray[y:y+h, x:x+w]
             roi_color = frame[y:y+h, x:x+w]
             rects = gun[0]
             neighbours = gun[0]
             weights = gun[0]
-            #if (frameId % math.floor(frameRate) == 1):
-            #cv2.putText(frame, datetime.datetime.now().strftime("%A %d %B %Y %I:%M:%S%p"),(10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255, 165, 0), 1)
 
+            cv2.putText(frame, datetime.datetime.now().strftime("%A %d %B %Y %I:%M:%S%p"),(10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255, 165, 0), 1)
+            #print(framecount)
             #cv2.imwrite('bin/' + userID+'-'+randID + '.jpg', frame)
+            #Thread(target = cv2.imwrite('bin/' + userID+'-'+randID + '.jpg', frame)).start()
+            #
             if userID == "NULL":
                 print("failed due to user null")
                 break
-            print("working on pushing images to s3"+userID)
+                #print("working on pushing images to s3"+userID)
+                #Thread(target = s3.uploadDirectory("bin/", "open-gun-recordings",userID)).start()
             #s3.uploadDirectory("bin/", "open-gun-recordings",userID)
+                #out.write(frame)
+            print(framecount)
 
-            #picURL = "s3bucket.com/users/screenshots/"+userID+'/'+userID+'-'+randID+'.jpg'
-            #out.write(frame)
 
-            yield (b'--frame\r\n'
-                    b'Content-Type: image/jpeg\r\n\r\n' + cv2.imencode('.jpg', frame)[1].tobytes() + b'\r\n\r\n')
+        if framecount > 50 :
+            picURL = "https://s3-eu-west-1.amazonaws.com/open-gun-recordings/users/screenshots/"+userID+'/'+userID+'-'+randID+'.jpg'
 
+            cv2.imwrite('bin/' + userID+'-'+randID + '.jpg', frame)
+
+            #s3.uploadDirectory("bin/", "open-gun-recordings",userID)
             #txt.fire(picURL)
+            print("wooooo")
+            framecount = 0
+        yield (b'--frame\r\n'
+                b'Content-Type: image/jpeg\r\n\r\n' + cv2.imencode('.jpg', frame)[1].tobytes() + b'\r\n\r\n')
+        #Thread(target = s3.uploadDirectory("bin/", "open-gun-recordings",userID).start())
 
+
+            #Thread(target = txt.fire(picURL)).start()
+        #out.write(frame)
 
         #camera = cv2.imdecode(frame, cv2.IMREAD_COLOR)
 
@@ -150,4 +168,4 @@ def video_feed():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True,port=80)
+    app.run(host='0.0.0.0', debug=True)
